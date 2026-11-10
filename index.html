@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090914">
+<title>PS AI Studio</title>
+<style>
+:root{--bg:#090914;--panel:#111121;--panel2:#17172b;--line:#292943;--text:#eeeefe;--muted:#9292b0;--purple:#865cff;--cyan:#38d9ef;--red:#ff657e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px Arial,sans-serif;min-height:100vh}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer;color:var(--text);border:1px solid var(--line);background:var(--panel2);padding:10px 13px;border-radius:9px}
+button:hover{border-color:var(--purple)}
+button.primary{background:linear-gradient(110deg,#7144e8,#a05cff);border:0}
+button.danger{color:var(--red)}
+input,textarea,select{width:100%;background:#0c0c19;color:var(--text);border:1px solid var(--line);padding:11px;border-radius:8px;outline:none}
+textarea{resize:vertical;min-height:100px}
+input:focus,textarea:focus,select:focus{border-color:var(--purple)}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sidebar{background:#0d0d1b;border-right:1px solid var(--line);padding:20px 14px}
+.logo{font-size:23px;font-weight:800;letter-spacing:2px;margin:5px 8px 30px}
+.logo span{color:var(--purple)}
+.section-label{font-size:10px;color:var(--muted);letter-spacing:2px;margin:23px 9px 9px}
+.nav{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:4px 0;background:transparent;border-color:transparent}
+.nav.active{background:#211a3b;border-color:#483276;color:#c9b8ff}
+.main{min-width:0}
+.topbar{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;gap:12px}
+.topbar strong{font-size:15px}
+.status{font-size:11px;color:#ffcf77}
+.content{padding:22px;max-width:1600px;margin:auto}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.heading h1{font-size:23px;margin:0 0 6px}
+.muted{color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:17px}
+.tabs button.active{background:#30214f;border-color:var(--purple)}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:15px}
+.canvas{height:590px;position:relative;overflow:hidden;background-color:#0c0c19;background-image:radial-gradient(#33334e 1px,transparent 1px);background-size:22px 22px;border:1px solid var(--line);border-radius:13px;touch-action:none}
+.canvas-inner{position:absolute;inset:0;transform-origin:0 0}
+.node{position:absolute;width:190px;background:#17172b;border:1px solid #464665;border-radius:10px;box-shadow:0 10px 30px #0007;user-select:none;touch-action:none}
+.node.selected{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),0 10px 30px #0008}
+.node-head{padding:10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;cursor:grab;font-weight:bold}
+.node-body{padding:10px;font-size:12px;color:var(--muted)}
+.node-body input{font-size:11px;padding:7px;margin-top:5px}
+.node-port{width:11px;height:11px;border-radius:50%;background:var(--cyan);position:absolute;top:43px}
+.node-port.in{left:-6px}.node-port.out{right:-6px;background:var(--purple)}
+.node svg{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.wires path{stroke:#8d6aff;stroke-width:2.5;fill:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;min-width:0}
+.panel h3{margin:0 0 15px;font-size:14px}
+.field{margin:13px 0}
+.field label{display:block;color:var(--muted);font-size:11px;margin-bottom:7px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions button{flex:1}
+.output{white-space:pre-wrap;overflow-wrap:anywhere;background:#090914;border:1px solid var(--line);padding:12px;border-radius:8px;color:var(--muted);font-size:12px;min-height:70px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{background:var(--panel);border:1px solid var(--line);padding:17px;border-radius:12px}
+.stat strong{display:block;font-size:22px;margin-top:9px}
+.hidden{display:none!important}
+.mobile-menu{display:none}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#272044;border:1px solid #7655d9;padding:12px 18px;border-radius:10px;display:none;z-index:99;max-width:90%;text-align:center}
+@media(max-width:850px){
+.app{grid-template-columns:1fr}
+.sidebar{position:fixed;z-index:20;top:0;bottom:0;left:-240px;width:220px;transition:left .2s;box-shadow:10px 0 40px #0008}
+.sidebar.open{left:0}
+.mobile-menu{display:inline-block}
+.workspace{grid-template-columns:1fr}
+.canvas{height:480px}
+.content{padding:14px}
+.topbar{padding:0 13px}
+}
+@media(min-width:851px){.sidebar{position:sticky;top:0;height:100vh}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+<div class="logo">PS <span>STUDIO</span></div>
+<div class="section-label">WORKSPACE</div>
+<button class="nav active" data-page="studio">◈ &nbsp; Studio</button>
+<button class="nav" data-page="models">▦ &nbsp; Models</button>
+<button class="nav" data-page="flows">⌘ &nbsp; Workflows</button>
+<button class="nav" data-page="gallery">▧ &nbsp; Gallery</button>
+<div class="section-label">SYSTEM</div>
+<button class="nav" data-page="settings">⚙ &nbsp; Settings</button>
+<button class="nav" data-page="device">▣ &nbsp; Device</button>
+</aside>
+
+<main class="main">
+<header class="topbar">
+<div style="display:flex;align-items:center;gap:12px">
+<button class="mobile-menu" id="menu">☰</button>
+<strong>PS AI CREATIVE WORKSPACE</strong>
+</div>
+<span class="status" id="connection">● Backend not connected</span>
+</header>
+
+<div class="content">
+<section id="page-studio">
+<div class="heading">
+<div><h1>Creative Studio</h1><div class="muted">Build and manage AI workflows</div></div>
+<div class="actions" style="flex:0 1 auto">
+<button id="save">Save</button>
+<button id="export">Export</button>
+<button id="import">Import</button>
+<input id="file" type="file" accept=".json,application/json" class="hidden">
+</div>
+</div>
+
+<div class="tabs">
+<button class="active" data-mode="default">Default</button>
+<button data-mode="advanced">Advanced</button>
+<button data-mode="chat">Chat</button>
+</div>
+
+<div class="workspace">
+<div>
+<div class="actions" style="margin-bottom:10px">
+<button id="addPrompt">＋ Prompt</button>
+<button id="addModel">＋ Model</button>
+<button id="addOutput">＋ Output</button>
+<button id="connect">Connect nodes</button>
+<button id="zoomIn">＋ Zoom</button>
+<button id="zoomOut">－ Zoom</button>
+</div>
+<div class="canvas" id="canvas">
+<div class="canvas-inner" id="inner">
+<svg class="wires" id="wires"></svg>
+</div>
+</div>
+<div class="muted" style="margin-top:9px">Drag nodes to move. Select a node to edit. Connect nodes by selecting two nodes and pressing Connect.</div>
+</div>
+
+<aside class="panel">
+<h3>Node Properties</h3>
+<div id="properties" class="muted">Select a node on the canvas.</div>
+<hr style="border-color:var(--line);margin:17px 0">
+<h3>Run Workflow</h3>
+<div class="field"><label>Backend URL</label><input id="backend" placeholder="https://your-server.example"></div>
+<div class="field"><label>API endpoint</label><input id="endpoint" value="/api/generate"></div>
+<button class="primary" id="run" style="width:100%">▶ Run workflow</button>
+<div class="field"><label>Run status</label><div class="output" id="runStatus">Waiting for a configured backend.</div></div>
+<div class="field"><label>Activity log</label><div class="output" id="log">PS AI Studio initialized.</div></div>
+</aside>
+</div>
+</section>
+
+<section id="page-models" class="hidden">
+<div class="heading"><div><h1>Model Manager</h1><div class="muted">Manage model providers and connection settings</div></div></div>
+<div class="card-grid">
+<div class="stat">Local device<strong>Android</strong><div class="muted">UI and workflow editing</div></div>
+<div class="stat">Remote inference<strong>Not connected</strong><div class="muted">Configure a backend in Studio</div></div>
+</div>
+<div class="panel" style="margin-top:15px">
+<h3>Provider configuration</h3>
+<p class="muted">No model downloads are started automatically. Add a real inference backend before running generation.</p>
+<div class="field"><label>Provider name</label><input id="providerName" placeholder="My GPU server"></div>
+<div class="field"><label>Server URL</label><input id="providerUrl" placeholder="https://your-server.example"></div>
+<button id="testProvider" class="primary">Test connection</button>
+<div class="output" id="providerResult" style="margin-top:12px">No connection test yet.</div>
+</div>
+</section>
+
+<section id="page-flows" class="hidden">
+<div class="heading"><div><h1>Workflows</h1><div class="muted">Saved workflows on this browser</div></div></div>
+<div class="panel"><h3>Workflow library</h3><div id="flowList" class="muted">No saved workflows yet.</div></div>
+</section>
+
+<section id="page-gallery" class="hidden">
+<div class="heading"><div><h1>Gallery</h1><div class="muted">Generated files and local previews</div></div></div>
+<div class="panel"><p class="muted">Generated images and videos will appear here after a real backend returns them. No demo results are fabricated.</p></div>
+</section>
+
+<section id="page-settings" class="hidden">
+<div class="heading"><div><h1>Settings</h1><div class="muted">Studio preferences</div></div></div>
+<div class="panel">
+<h3>Connection</h3>
+<div class="field"><label>Backend base URL</label><input id="settingsBackend" placeholder="https://your-server.example"></div>
+<button id="applySettings">Save settings</button>
+</div>
+</section>
+
+<section id="page-device" class="hidden">
+<div class="heading"><div><h1>Device</h1><div class="muted">Runtime information</div></div></div>
+<div class="panel">
+<p id="deviceInfo">Checking browser capabilities...</p>
+<p class="muted">Heavy image and video models require a compatible remote GPU backend on devices without suitable accelerator and memory support.</p>
+</div>
+</section>
+</div>
+</main>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const state={nodes:[],wires:[],selected:null,next:1,scale:1,mode:"default",drag:null,connectMode:false,first:null};
+
+function toast(message){
+ const t=$("toast");t.textContent=message;t.style.display="block";
+ clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.style.display="none",2400);
+}
+function log(message){
+ $("log").textContent=new Date().toLocaleTimeString()+" — "+message+"\n"+$("log").textContent;
+}
+function node(type,x,y){
+ const n={id:state.next++,type,x,y,text:type==="prompt"?"Describe your image or video...":type==="model"?"Select a compatible model":"Output",model:"Not configured"};
+ state.nodes.push(n);render();selectNode(n.id);log("Added "+type+" node.");
+}
+function render(){
+ document.querySelectorAll(".node").forEach(e=>e.remove());
+ state.nodes.forEach(n=>{
+  const el=document.createElement("div");
+  el.className="node"+(state.selected===n.id?" selected":"");
+  el.dataset.id=n.id;
+  el.style.left=n.x+"px";el.style.top=n.y+"px";
+  el.innerHTML='<div class="node-head"><span></span><span>⋮</span></div><div class="node-body"></div><div class="node-port in"></div><div class="node-port out"></div>';
+  el.querySelector(".node-head span").textContent=n.type.toUpperCase()+" #"+n.id;
+  el.querySelector(".node-body").textContent=n.text.slice(0,65);
+  el.addEventListener("pointerdown",startDrag);
+  el.addEventListener("click",e=>{e.stopPropagation();selectNode(n.id)});
+  $("inner").appendChild(el);
+ });
+ drawWires();
+}
+function drawWires(){
+ const svg=$("wires");svg.innerHTML="";
+ state.wires.forEach(w=>{
+  const a=state.nodes.find(n=>n.id===w.a),b=state.nodes.find(n=>n.id===w.b);
+  if(!a||!b)return;
+  const x1=a.x+190,y1=a.y+49,x2=b.x,y2=b.y+49;
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",`M ${x1} ${y1} C ${x1+70} ${y1}, ${x2-70} ${y2}, ${x2} ${y2}`);
+  svg.appendChild(p);
+ });
+}
+function selectNode(id){
+ state.selected=id;const n=state.nodes.find(x=>x.id===id);render();
+ if(!n){$("properties").textContent="Select a node on the canvas.";return}
+ const box=$("properties");box.innerHTML="";
+ const label=document.createElement("div");label.className="field";
+ label.innerHTML="<label>Node type</label>";
+ const type=document.createElement("div");type.textContent=n.type.toUpperCase()+" #"+n.id;label.appendChild(type);box.appendChild(label);
+ const field=document.createElement("div");field.className="field";
+ const lab=document.createElement("label");lab.textContent="Node content";field.appendChild(lab);
+ const area=document.createElement("textarea");area.value=n.text;area.addEventListener("input",()=>{n.text=area.value;const el=document.querySelector('[data-id="'+n.id+'"] .node-body');if(el)el.textContent=n.text.slice(0,65)});field.appendChild(area);box.appendChild(field);
+ if(n.type==="model"){
+  const inp=document.createElement("input");inp.value=n.model;inp.placeholder="Model identifier";inp.addEventListener("input",()=>n.model=inp.value);box.appendChild(inp);
+ }
+ const del=document.createElement("button");del.className="danger";del.textContent="Delete node";del.style.marginTop="10px";
+ del.onclick=()=>{state.nodes=state.nodes.filter(x=>x.id!==id);state.wires=state.wires.filter(w=>w.a!==id&&w.b!==id);state.selected=null;selectNode(null);render()};
+ box.appendChild(del);
+}
+function startDrag(e){
+ if(e.target.classList.contains("node-port"))return;
+ const el=e.currentTarget,id=Number(el.dataset.id),n=state.nodes.find(x=>x.id===id);
+ selectNode(id);
+ state.drag={id,startX:e.clientX,startY:e.clientY,x:n.x,y:n.y};
+ el.setPointerCapture(e.pointerId);
+}
+$("inner").addEventListener("pointermove",e=>{
+ if(!state.drag)return;
+ const n=state.nodes.find(x=>x.id===state.drag.id);if(!n)return;
+ n.x=Math.max(0,state.drag.x+(e.clientX-state.drag.startX)/state.scale);
+ n.y=Math.max(0,state.drag.y+(e.clientY-state.drag.startY)/state.scale);
+ const el=document.querySelector('[data-id="'+n.id+'"]');
+ if(el){el.style.left=n.x+"px";el.style.top=n.y+"px"}
+ drawWires();
+});
+$("inner").addEventListener("pointerup",()=>state.drag=null);
+$("canvas").addEventListener("click",e=>{if(e.target===$("canvas"))selectNode(null)});
+
+$("addPrompt").onclick=()=>node("prompt",35,45);
+$("addModel").onclick=()=>node("model",280,145);
+$("addOutput").onclick=()=>node("output",540,245);
+$("connect").onclick=()=>{
+ if(state.nodes.length<2)return toast("Add at least two nodes.");
+ if(!state.connectMode){state.connectMode=true;state.first=state.selected;return toast("Select the first node, then click Connect again and select another node.");}
+ const a=state.first,b=state.selected;state.connectMode=false;state.first=null;
+ if(!a||!b||a===b)return toast("Select two different nodes.");
+ if(!state.wires.some(w=>w.a===a&&w.b===b))state.wires.push({a,b});
+ drawWires();log("Connected nodes "+a+" → "+b);
+};
+$("zoomIn").onclick=()=>{state.scale=Math.min(1.8,state.scale+.1);$("inner").style.transform=`scale(${state.scale})`};
+$("zoomOut").onclick=()=>{state.scale=Math.max(.5,state.scale-.1);$("inner").style.transform=`scale(${state.scale})`};
+
+function workflow(){return {app:"PS AI Studio",version:1,nodes:state.nodes,wires:state.wires}}
+function save(){
+ try{localStorage.setItem("ps-workflow",JSON.stringify(workflow()));toast("Workflow saved on this device.");log("Workflow saved.");}
+ catch(e){toast("Save failed: "+e.message)}
+}
+$("save").onclick=save;
+$("export").onclick=()=>{
+ const blob=new Blob([JSON.stringify(workflow(),null,2)],{type:"application/json"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="ps-workflow.json";a.click();URL.revokeObjectURL(a.href);
+};
+$("import").onclick=()=>$("file").click();
+$("file").onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ try{const d=JSON.parse(await f.text());if(!Array.isArray(d.nodes)||!Array.isArray(d.wires))throw Error("Invalid workflow file");
+ state.nodes=d.nodes;state.wires=d.wires;state.next=Math.max(0,...state.nodes.map(n=>Number(n.id)||0))+1;state.selected=null;render();selectNode(null);toast("Workflow imported.");}
+ catch(err){toast("Import failed: "+err.message)}
+ e.target.value="";
+};
+function backendURL(){
+ const raw=$("backend").value.trim()||$("settingsBackend").value.trim();
+ if(!raw)return null;
+ try{const u=new URL(raw);if(!["http:","https:"].includes(u.protocol))return null;return u.origin+u.pathname.replace(/\/$/,"")}
+ catch{return null}
+}
+async function testConnection(){
+ const base=backendURL();if(!base)return "Enter a valid backend URL first.";
+ try{
+  const r=await fetch(base+"/health",{method:"GET"});
+  const txt=await r.text();$("connection").textContent=r.ok?"● Backend reachable":"● Backend error";
+  return "HTTP "+r.status+"\n"+txt.slice(0,700);
+ }catch(e){$("connection").textContent="● Backend unreachable";return "Connection failed: "+e.message}
+}
+$("testProvider").onclick=async()=>{
+ const url=$("providerUrl").value.trim();
+ if(!url)return $("providerResult").textContent="Enter a server URL.";
+ $("providerResult").textContent="Testing...";
+ $("backend").value=url;
+ $("providerResult").textContent=await testConnection();
+};
+$("run").onclick=async()=>{
+ const base=backendURL();
+ if(!base){$("runStatus").textContent="No valid backend configured. Generation was not started.";return}
+ const prompts=state.nodes.filter(n=>n.type==="prompt").map(n=>n.text);
+ const models=state.nodes.filter(n=>n.type==="model").map(n=>n.model);
+ if(!prompts.length)return $("runStatus").textContent="Add a Prompt node first.";
+ $("runStatus").textContent="Sending request to configured backend...";
+ try{
+  const endpoint=$("endpoint").value.trim()||"/api/generate";
+  const url=new URL(endpoint,base).toString();
+  const response=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompts,models,nodes:state.nodes,wires:state.wires})});
+  const body=await response.text();
+  if(!response.ok)throw Error("HTTP "+response.status+": "+body.slice(0,500));
+  $("runStatus").textContent="Backend response:\n"+body.slice(0,1500);
+  log("Backend returned HTTP "+response.status);
+ }catch(e){$("runStatus").textContent="Generation failed: "+e.message;log("Run failed: "+e.message)}
+};
+$("applySettings").onclick=()=>{$("backend").value=$("settingsBackend").value;toast("Backend URL copied to Studio.");};
+document.querySelectorAll(".nav").forEach(btn=>btn.onclick=()=>{
+ document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
+ document.querySelectorAll("main section").forEach(x=>x.classList.add("hidden"));
+ $("page-"+btn.dataset.page).classList.remove("hidden");$("sidebar").classList.remove("open");
+ if(btn.dataset.page==="flows")renderFlows();
+});
+document.querySelectorAll("[data-mode]").forEach(btn=>btn.onclick=()=>{
+ document.querySelectorAll("[data-mode]").forEach(x=>x.classList.remove("active"));btn.classList.add("active");state.mode=btn.dataset.mode;
+ toast(state.mode.toUpperCase()+" mode selected.");
+ if(state.mode==="default"&&!state.nodes.length){node("prompt",35,45);node("model",280,145);node("output",540,245)}
+ if(state.mode==="chat")toast("Chat workflow builder is not connected yet.");
+});
+function renderFlows(){
+ const saved=localStorage.getItem("ps-workflow");
+ $("flowList").textContent=saved?"A saved workflow is available. Open Studio to continue editing.":"No saved workflows yet.";
+}
+$("menu").onclick=()=>$("sidebar").classList.toggle("open");
+$("deviceInfo").textContent="Platform: "+navigator.platform+"\nBrowser: "+navigator.userAgent+"\nOnline: "+navigator.onLine+"\nMemory estimate: "+(navigator.deviceMemory||"Not reported")+" GB";
+$("connection").textContent="● Backend not connected";
+try{
+ const saved=localStorage.getItem("ps-workflow");
+ if(saved){const d=JSON.parse(saved);if(Array.isArray(d.nodes)&&Array.isArray(d.wires)){state.nodes=d.nodes;state.wires=d.wires;state.next=Math.max(0,...state.nodes.map(n=>Number(n.id)||0))+1;}}
+}catch(e){log("Saved workflow could not be loaded.");}
+render();
+if(!state.nodes.length){node("prompt",35,45);node("model",280,145);node("output",540,245);selectNode(null)}
+</script>
+</body>
+</html>
